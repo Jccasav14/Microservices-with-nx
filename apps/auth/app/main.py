@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+
 app = FastAPI(
     title="SIBU Auth",
     version="1.0.0",
