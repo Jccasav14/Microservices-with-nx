@@ -1,11 +1,26 @@
 #!/bin/bash
 set -euo pipefail
+
 yum update -y
-yum install -y docker
+yum install -y docker git unzip curl
 systemctl enable docker
 systemctl start docker
 
-aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${ecr_registry}
+WORKDIR="/opt/sibu-src"
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+curl -fsSL "${repo_url}/archive/${git_ref}.zip" -o src.zip || \
+curl -fsSL "${repo_url}/archive/refs/heads/${git_ref}.zip" -o src.zip
+
+unzip -q src.zip
+ROOTDIR=$(find . -maxdepth 1 -type d -name "*${git_ref}*" | head -n 1)
+cd "$ROOTDIR"
+
+docker build -t sibu-auth:local apps/auth
+docker build -t sibu-users:local apps/users
+docker build -t sibu-cases:local apps/cases
 
 mkdir -p /opt/sibu
 cat > /opt/sibu/nginx.conf <<'NGINX'
@@ -23,15 +38,15 @@ docker rm -f auth users cases back-nginx || true
 
 docker run -d --name auth -p 8001:8001 \
   -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
-  ${auth_image}
+  sibu-auth:local
 
 docker run -d --name users -p 8002:8002 \
   -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
-  ${users_image}
+  sibu-users:local
 
 docker run -d --name cases -p 8003:8003 \
   -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
-  ${cases_image}
+  sibu-cases:local
 
 docker run -d --name back-nginx -p 80:80 \
   -v /opt/sibu/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine

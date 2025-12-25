@@ -1,6 +1,7 @@
 aws_region   = "us-east-1"
 project_name = "sibu"
 env          = "qa"
+
 tags = {
   Project = "sibu"
   Env     = "qa"
@@ -11,3 +12,7 @@ public_subnet_cidrs = ["10.10.1.0/24","10.10.2.0/24"]
 azs = ["us-east-1a","us-east-1b"]
 
 instance_type = "t3.micro"
+
+# CHANGE_ME to your repo (recommended: public)
+repo_url = "https://github.com/CHANGE_ME/CHANGE_ME"
+git_ref  = "test-qa"

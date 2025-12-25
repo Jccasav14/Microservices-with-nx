@@ -2,9 +2,6 @@ variable "project_name" { type = string }
 variable "env"          { type = string }
 variable "role"         { type = string }
 
-variable "aws_region"   { type = string }
-variable "ecr_registry" { type = string }
-
 variable "vpc_id"            { type = string }
 variable "public_subnet_ids" { type = list(string) }
 variable "alb_sg_id"         { type = string }
@@ -30,24 +27,12 @@ variable "asg_max" {
   default = 1
 }
 
-variable "web_image" {
-  type    = string
-  default = ""
+variable "repo_url" {
+  type = string
 }
 
-variable "auth_image" {
-  type    = string
-  default = ""
-}
-
-variable "users_image" {
-  type    = string
-  default = ""
-}
-
-variable "cases_image" {
-  type    = string
-  default = ""
+variable "git_ref" {
+  type = string
 }
 
 variable "db_host" {

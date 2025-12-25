@@ -1,11 +1,23 @@
 #!/bin/bash
 set -euo pipefail
+
 yum update -y
-yum install -y docker
+yum install -y docker git unzip curl
 systemctl enable docker
 systemctl start docker
 
-aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${ecr_registry}
+WORKDIR="/opt/sibu-src"
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+curl -fsSL "${repo_url}/archive/${git_ref}.zip" -o src.zip || \
+curl -fsSL "${repo_url}/archive/refs/heads/${git_ref}.zip" -o src.zip
+
+unzip -q src.zip
+ROOTDIR=$(find . -maxdepth 1 -type d -name "*${git_ref}*" | head -n 1)
+cd "$ROOTDIR"
 
 docker rm -f web || true
-docker run -d --name web -p 80:80 ${web_image}
+docker build -t sibu-web:local apps/web
+docker run -d --name web -p 80:80 sibu-web:local

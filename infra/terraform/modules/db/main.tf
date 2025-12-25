@@ -50,10 +50,5 @@ resource "aws_instance" "db" {
   tags = merge(var.tags, { Name = "${var.project_name}-${var.env}-db" })
 }
 
-output "public_ip" {
-  value = aws_instance.db.public_ip
-}
-
-output "private_ip" {
-  value = aws_instance.db.private_ip
-}
+output "public_ip" { value = aws_instance.db.public_ip }
+output "private_ip" { value = aws_instance.db.private_ip }

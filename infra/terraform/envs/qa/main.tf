@@ -12,19 +12,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-locals {
-  repo_web   = "${var.project_name}-web"
-  repo_auth  = "${var.project_name}-auth"
-  repo_users = "${var.project_name}-users"
-  repo_cases = "${var.project_name}-cases"
-}
-
-module "ecr" {
-  source     = "../../modules/ecr"
-  repo_names = [local.repo_web, local.repo_auth, local.repo_users, local.repo_cases]
-  tags       = var.tags
-}
-
 module "network" {
   source              = "../../modules/network"
   project_name        = var.project_name
@@ -44,27 +31,22 @@ module "alb" {
   tags              = var.tags
 }
 
-# DB fija (Postgres en EC2) - sin SSH; acceso limitado a la VPC CIDR
 module "db" {
   source            = "../../modules/db"
   project_name      = var.project_name
   env               = var.env
   vpc_id            = module.network.vpc_id
-  vpc_cidr          = var.vpc_cidr
   public_subnet_ids = module.network.public_subnet_ids
+  vpc_cidr          = var.vpc_cidr
   instance_type     = var.instance_type
   tags              = var.tags
 }
 
-# Back ASG: corre auth/users/cases + nginx, apunta a DB por IP privada
 module "back_asg" {
   source            = "../../modules/asg"
   project_name      = var.project_name
   env               = var.env
   role              = "back"
-  aws_region        = var.aws_region
-  ecr_registry      = var.ecr_registry
-
   vpc_id            = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   alb_sg_id         = module.alb.alb_sg_id
@@ -75,12 +57,11 @@ module "back_asg" {
   asg_desired = 1
   asg_max     = 1
 
-  auth_image  = var.auth_image
-  users_image = var.users_image
-  cases_image = var.cases_image
+  repo_url = var.repo_url
+  git_ref  = var.git_ref
+  db_host  = module.db.private_ip
 
-  db_host = module.db.private_ip
-  tags    = var.tags
+  tags = var.tags
 }
 
 module "front_asg" {
@@ -88,9 +69,6 @@ module "front_asg" {
   project_name      = var.project_name
   env               = var.env
   role              = "front"
-  aws_region        = var.aws_region
-  ecr_registry      = var.ecr_registry
-
   vpc_id            = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   alb_sg_id         = module.alb.alb_sg_id
@@ -101,14 +79,12 @@ module "front_asg" {
   asg_desired = 1
   asg_max     = 1
 
-  web_image = var.web_image
-  tags      = var.tags
+  repo_url = var.repo_url
+  git_ref  = var.git_ref
+
+  tags = var.tags
 }
 
 output "alb_dns_name" {
   value = module.alb.alb_dns_name
-}
-
-output "ecr_repo_urls" {
-  value = module.ecr.repo_urls
 }

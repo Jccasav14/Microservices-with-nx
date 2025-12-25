@@ -35,46 +35,14 @@ resource "aws_security_group" "instance" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(
-    var.tags,
-    { Name = "${var.project_name}-${var.env}-${var.role}-sg" }
-  )
-}
-
-resource "aws_iam_role" "ec2_role" {
-  name = "${var.project_name}-${var.env}-${var.role}-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = { Service = "ec2.amazonaws.com" }
-        Action    = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecr_read" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_instance_profile" "this" {
-  name = "${var.project_name}-${var.env}-${var.role}-profile"
-  role = aws_iam_role.ec2_role.name
+  tags = merge(var.tags, { Name = "${var.project_name}-${var.env}-${var.role}-sg" })
 }
 
 locals {
   user_data = templatefile("${path.module}/templates/${var.role}_user_data.sh.tftpl", {
-    aws_region   = var.aws_region
-    ecr_registry = var.ecr_registry
-    web_image    = var.web_image
-    auth_image   = var.auth_image
-    users_image  = var.users_image
-    cases_image  = var.cases_image
-    db_host      = var.db_host
+    repo_url = var.repo_url
+    git_ref  = var.git_ref
+    db_host  = var.db_host
   })
 }
 
@@ -84,10 +52,6 @@ resource "aws_launch_template" "lt" {
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.instance.id]
   user_data              = base64encode(local.user_data)
-
-  iam_instance_profile {
-    name = aws_iam_instance_profile.this.name
-  }
 
   tag_specifications {
     resource_type = "instance"
