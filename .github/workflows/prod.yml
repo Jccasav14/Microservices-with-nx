@@ -14,6 +14,7 @@ jobs:
       PROJECT_NAME: sibu
       TAG: prod-${{ github.sha }}
       ENV_DIR: infra/terraform/envs/prod
+
     steps:
       - uses: actions/checkout@v4
 
@@ -40,16 +41,17 @@ jobs:
         working-directory: ${{ env.ENV_DIR }}
         run: |
           terraform init
-          terraform apply -auto-approve -target=module.ecr -var="ecr_registry=$ECR"             -var="web_image=$ECR/$PROJECT_NAME-web:bootstrap"             -var="auth_image=$ECR/$PROJECT_NAME-auth:bootstrap"             -var="users_image=$ECR/$PROJECT_NAME-users:bootstrap"             -var="cases_image=$ECR/$PROJECT_NAME-cases:bootstrap"
+          terraform apply -auto-approve -target=module.ecr             -var="ecr_registry=$ECR"             -var="web_image=$ECR/$PROJECT_NAME-web:bootstrap"             -var="auth_image=$ECR/$PROJECT_NAME-auth:bootstrap"             -var="users_image=$ECR/$PROJECT_NAME-users:bootstrap"             -var="cases_image=$ECR/$PROJECT_NAME-cases:bootstrap"
 
       - name: Login ECR
         run: |
-          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR"
+          aws ecr get-login-password --region "$AWS_REGION" |           docker login --username AWS --password-stdin "$ECR"
 
       - name: Build & Push images
         run: |
           docker build -t "$ECR/$PROJECT_NAME-web:$TAG" apps/web
           docker push "$ECR/$PROJECT_NAME-web:$TAG"
+
           for svc in auth users cases; do
             docker build -t "$ECR/$PROJECT_NAME-$svc:$TAG" "apps/$svc"
             docker push "$ECR/$PROJECT_NAME-$svc:$TAG"
