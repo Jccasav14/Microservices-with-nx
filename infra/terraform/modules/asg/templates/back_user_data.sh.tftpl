@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+yum update -y
+yum install -y docker
+systemctl enable docker
+systemctl start docker
+
+aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${ecr_registry}
+
+mkdir -p /opt/sibu
+cat > /opt/sibu/nginx.conf <<'NGINX'
+server {
+  listen 80;
+  location = /health { return 200 "ok"; add_header Content-Type text/plain; }
+
+  location /api/auth/  { proxy_pass http://127.0.0.1:8001/api/auth/;  }
+  location /api/users/ { proxy_pass http://127.0.0.1:8002/api/users/; }
+  location /api/cases/ { proxy_pass http://127.0.0.1:8003/api/cases/; }
+}
+NGINX
+
+docker rm -f auth users cases back-nginx || true
+
+docker run -d --name auth -p 8001:8001 \
+  -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
+  ${auth_image}
+
+docker run -d --name users -p 8002:8002 \
+  -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
+  ${users_image}
+
+docker run -d --name cases -p 8003:8003 \
+  -e DATABASE_URL="postgresql://sibu:sibu@${db_host}:5432/sibu" \
+  ${cases_image}
+
+docker run -d --name back-nginx -p 80:80 \
+  -v /opt/sibu/nginx.conf:/etc/nginx/conf.d/default.conf:ro nginx:1.27-alpine

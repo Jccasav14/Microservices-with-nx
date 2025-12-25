@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+yum update -y
+yum install -y docker
+systemctl enable docker
+systemctl start docker
+
+aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${ecr_registry}
+
+docker rm -f web || true
+docker run -d --name web -p 80:80 ${web_image}

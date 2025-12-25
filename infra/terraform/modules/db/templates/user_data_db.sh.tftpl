@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+yum update -y
+yum install -y docker
+systemctl enable docker
+systemctl start docker
+docker rm -f postgres || true
+docker run -d --name postgres -p 5432:5432 \
+  -e POSTGRES_DB=sibu -e POSTGRES_USER=sibu -e POSTGRES_PASSWORD=sibu \
+  postgres:16-alpine

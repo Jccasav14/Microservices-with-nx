@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "projects": {
+    "auth": {
+      "root": "apps/auth",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload",
+            "cwd": "apps/auth"
+          }
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t sibu-auth:local .",
+            "cwd": "apps/auth"
+          }
+        }
+      }
+    },
+    "users": {
+      "root": "apps/users",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload",
+            "cwd": "apps/users"
+          }
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t sibu-users:local .",
+            "cwd": "apps/users"
+          }
+        }
+      }
+    },
+    "cases": {
+      "root": "apps/cases",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload",
+            "cwd": "apps/cases"
+          }
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t sibu-cases:local .",
+            "cwd": "apps/cases"
+          }
+        }
+      }
+    },
+    "web": {
+      "root": "apps/web",
+      "projectType": "application",
+      "targets": {
+        "serve": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "npm install && npm run dev -- --host 0.0.0.0 --port 5173",
+            "cwd": "apps/web"
+          }
+        },
+        "docker-build": {
+          "executor": "nx:run-commands",
+          "options": {
+            "command": "docker build -t sibu-web:local .",
+            "cwd": "apps/web"
+          }
+        }
+      }
+    }
+  }
+}

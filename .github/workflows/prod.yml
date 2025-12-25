@@ -1,0 +1,56 @@
+name: Deploy PROD (on PR merged to main)
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [closed]
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      PROJECT_NAME: sibu
+      TAG: prod-${{ github.sha }}
+      ENV_DIR: infra/terraform/envs/prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Derive ECR registry from caller identity
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+          echo "ECR=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Terraform bootstrap (create ECR repos)
+        working-directory: ${{ env.ENV_DIR }}
+        run: |
+          terraform init
+          terraform apply -auto-approve -target=module.ecr -var="ecr_registry=$ECR"             -var="web_image=$ECR/$PROJECT_NAME-web:bootstrap"             -var="auth_image=$ECR/$PROJECT_NAME-auth:bootstrap"             -var="users_image=$ECR/$PROJECT_NAME-users:bootstrap"             -var="cases_image=$ECR/$PROJECT_NAME-cases:bootstrap"
+
+      - name: Login ECR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR"
+
+      - name: Build & Push images
+        run: |
+          docker build -t "$ECR/$PROJECT_NAME-web:$TAG" apps/web
+          docker push "$ECR/$PROJECT_NAME-web:$TAG"
+          for svc in auth users cases; do
+            docker build -t "$ECR/$PROJECT_NAME-$svc:$TAG" "apps/$svc"
+            docker push "$ECR/$PROJECT_NAME-$svc:$TAG"
+          done
+
+      - name: Terraform apply (PROD infra)
+        working-directory: ${{ env.ENV_DIR }}
+        run: |
+          terraform apply -auto-approve             -var="ecr_registry=$ECR"             -var="web_image=$ECR/$PROJECT_NAME-web:$TAG"             -var="auth_image=$ECR/$PROJECT_NAME-auth:$TAG"             -var="users_image=$ECR/$PROJECT_NAME-users:$TAG"             -var="cases_image=$ECR/$PROJECT_NAME-cases:$TAG"

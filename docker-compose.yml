@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sibu
+      POSTGRES_USER: sibu
+      POSTGRES_PASSWORD: sibu
+    ports: ["5432:5432"]
+
+  auth:
+    build: ./apps/auth
+    environment: { DATABASE_URL: postgresql://sibu:sibu@db:5432/sibu }
+    depends_on: [db]
+
+  users:
+    build: ./apps/users
+    environment: { DATABASE_URL: postgresql://sibu:sibu@db:5432/sibu }
+    depends_on: [db]
+
+  cases:
+    build: ./apps/cases
+    environment: { DATABASE_URL: postgresql://sibu:sibu@db:5432/sibu }
+    depends_on: [db]
+
+  back-nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/back.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ["8080:80"]
+    depends_on: [auth, users, cases]
+
+  web:
+    build: ./apps/web
+    ports: ["80:80"]
+    depends_on: [back-nginx]

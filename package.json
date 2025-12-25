@@ -1,0 +1,16 @@
+{
+  "name": "sibu-nx-everything-no-ssh",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "nx": "nx",
+    "serve:web": "nx serve web",
+    "serve:auth": "nx serve auth",
+    "serve:users": "nx serve users",
+    "serve:cases": "nx serve cases",
+    "docker:build": "nx run-many -t docker-build --all"
+  },
+  "devDependencies": {
+    "nx": "^19.8.3"
+  }
+}
