@@ -7,7 +7,10 @@ variable "vpc_id" { type=string }
 variable "public_subnet_ids" { type=list(string) }
 variable "alb_sg_id" { type=string }
 variable "target_group_arn" { type=string }
-variable "instance_type" { type=string default="t3.micro" }
+variable "instance_type" {
+  type    = string
+  default = "t3.micro"
+}
 
 variable "asg_min" { type=number default=1 }
 variable "asg_desired" { type=number default=1 }

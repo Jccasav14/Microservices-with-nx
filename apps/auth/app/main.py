@@ -4,7 +4,7 @@ app = FastAPI(
     version="1.0.0",
     openapi_url="/api/auth/openapi.json",
     docs_url="/api/auth/docs",
-    redoc_url="/api/auth/redocs",
+    redoc_url="/api/auth/redoc",
 )
 
 @app.get("/api/auth/health", tags=["health"])
